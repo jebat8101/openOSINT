@@ -1,78 +1,243 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>openosint(1) - General Commands Manual</title>
-    <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>openosint(1)</title>
+<link rel="icon" type="image/svg+xml" href="logo.svg">
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <span class="left">OPENOSINT(1)</span>
-            <span class="center">General Commands Manual</span>
-            <span class="right">OPENOSINT(1)</span>
-        </div>
+<div id="nav">
+<a href="#name">NAME</a>
+<a href="#synopsis">SYNOPSIS</a>
+<a href="#description">DESCRIPTION</a>
+<a href="#architecture">ARCHITECTURE</a>
+<a href="#installation">INSTALLATION</a>
+<a href="#configuration">CONFIGURATION</a>
+<a href="#commands">COMMANDS</a>
+<a href="#examples">EXAMPLES</a>
+<a href="#files">FILES</a>
+<a href="#exit">EXIT STATUS</a>
+<a href="#license">LICENSE</a>
+</div>
 
-        <h2>NAME</h2>
-        <div class="section-content">
-            <p><strong>openosint</strong> - Model Context Protocol (MCP) server and CLI for Open Source Intelligence</p>
-        </div>
+<div id="content">
 
-        <h2>SYNOPSIS</h2>
-        <div class="section-content">
-            <pre><strong>openosint</strong> [<strong>-h</strong>] [<strong>-v</strong>] <em>command</em> [<em>args ...</em>]</pre>
-        </div>
+<div id="masthead">
+<table width="100%" cellpadding="0" cellspacing="0" border="0">
+<tr>
+<td class="mhead-l">OPENOSINT(1)</td>
+<td class="mhead-c">General Commands Manual</td>
+<td class="mhead-r">OPENOSINT(1)</td>
+</tr>
+</table>
+</div>
 
-        <h2>DESCRIPTION</h2>
-        <div class="section-content">
-            <p>The <strong>openosint</strong> framework provides a standardized interface between large language models (LLMs) and real-world OSINT tools via the Model Context Protocol (MCP). It allows AI agents like Claude to autonomously discover, execute, and parse intelligence gathering tasks.</p>
-            <p>It can operate both as a daemonized MCP server over stdio and as a standalone command-line interface for manual execution.</p>
-        </div>
+<hr>
 
-        <h2>ARCHITECTURE</h2>
-        <div class="section-content">
-            <p>The system is strictly divided into three layers:</p>
-            <ul>
-                <li><strong>Core Modules:</strong> Asynchronous Python wrappers executing external binaries (e.g., holehe).</li>
-                <li><strong>MCP Server:</strong> Exposes the core modules as tool schemas adhering to the Anthropic MCP specification.</li>
-                <li><strong>CLI:</strong> An argparse-driven wrapper for direct human-in-the-loop execution.</li>
-            </ul>
-        </div>
+<h2 id="name">NAME</h2>
+<div class="indent">
+<p><b>openosint</b> &mdash; Model Context Protocol server and CLI for Open Source Intelligence</p>
+</div>
 
-        <h2>INSTALLATION</h2>
-        <div class="section-content">
-            <p>Installation is managed via pip using the PEP 621 compliant pyproject.toml configuration.</p>
-            <pre>$ git clone https://github.com/tuo-username/OpenOSINT.git
+<h2 id="synopsis">SYNOPSIS</h2>
+<div class="indent">
+<pre>openosint [<b>-v</b>] <u>command</u> [<u>args</u> ...]
+openosint email <u>address</u> [<b>-t</b> <u>seconds</u>]
+openosint username <u>handle</u> [<b>-t</b> <u>seconds</u>]</pre>
+</div>
+
+<h2 id="description">DESCRIPTION</h2>
+<div class="indent">
+<p>
+<b>openosint</b> is a modular OSINT framework that exposes real-world
+intelligence-gathering tools to large language models via the
+Anthropic Model Context Protocol (MCP). It also operates as a
+conventional command-line interface for direct human execution.
+</p>
+<p>
+The framework is built on a non-blocking asynchronous runtime
+(Python <code>asyncio</code>) to ensure that long-running subprocess
+calls do not block the agent reasoning loop. All external binaries
+are invoked as managed subprocesses with hard timeout enforcement.
+</p>
+<p>
+<b>openosint</b> does not embed an LLM. It provides the tool surface
+that an MCP-compatible client (Claude Code, Claude Desktop) connects
+to and drives autonomously.
+</p>
+</div>
+
+<h2 id="architecture">ARCHITECTURE</h2>
+<div class="indent">
+<p>The project is divided into three strictly separated layers:</p>
+<table>
+<tr>
+<th>Layer</th>
+<th>Location</th>
+<th>Responsibility</th>
+</tr>
+<tr>
+<td>Core tools</td>
+<td><code>openosint/tools/</code></td>
+<td>Async wrappers around external OSINT binaries. No I/O, no UI.</td>
+</tr>
+<tr>
+<td>MCP server</td>
+<td><code>openosint/mcp_server.py</code></td>
+<td>Translates core functions into MCP tool schemas. Routes LLM calls.</td>
+</tr>
+<tr>
+<td>CLI</td>
+<td><code>openosint/cli.py</code></td>
+<td>Human-facing interface. Calls core tools directly.</td>
+</tr>
+</table>
+<p>
+No layer imports from a layer above it. The core tools are
+stateless and have no knowledge of MCP or argparse.
+</p>
+</div>
+
+<h2 id="installation">INSTALLATION</h2>
+<div class="indent">
+<p>Requires Python 3.10 or later. Installation from source is the recommended method.</p>
+<pre>$ git clone https://github.com/OpenOSINT/OpenOSINT.git
 $ cd OpenOSINT
 $ pip install -e .</pre>
-        </div>
+<p>The following external binaries must be present in <code>PATH</code>:</p>
+<table>
+<tr><th>Binary</th><th>Purpose</th><th>Install</th></tr>
+<tr>
+<td><code>holehe</code></td>
+<td>Email account enumeration</td>
+<td><code>pip install holehe</code></td>
+</tr>
+<tr>
+<td><code>sherlock</code></td>
+<td>Username enumeration (300+ platforms)</td>
+<td><code>pip install sherlock-project</code></td>
+</tr>
+</table>
+<p>
+If a binary is absent, the corresponding tool returns a descriptive
+error string rather than raising an unhandled exception. The server
+and CLI remain operational for tools with satisfied dependencies.
+</p>
+</div>
 
-        <h2>CONFIGURATION (CLAUDE)</h2>
-        <div class="section-content">
-            <p>To register the MCP server with the Claude Code CLI, execute the following command, specifying the absolute path to the wrapper script:</p>
-            <pre>$ claude mcp add openosint python /path/to/OpenOSINT/openosint/mcp_server.py</pre>
-        </div>
+<h2 id="configuration">CONFIGURATION</h2>
+<div class="indent">
+<p><b>Claude Code</b></p>
+<p>Register the MCP server with Claude Code by providing the absolute path to the entry point:</p>
+<pre>$ claude mcp add openosint python /absolute/path/to/OpenOSINT/openosint/mcp_server.py</pre>
+<p>Verify registration:</p>
+<pre>$ claude mcp list</pre>
 
-        <h2>EXAMPLES</h2>
-        <div class="section-content">
-            <p>Direct manual execution via CLI to verify email presence across services:</p>
-            <pre>$ openosint email target@example.com --timeout 60</pre>
-            <p>Agentic execution via Claude Code (after MCP registration):</p>
-            <pre>$ claude
-> Analyze target@example.com using the available OSINT tools.</pre>
-        </div>
+<p><b>Claude Desktop</b></p>
+<p>Add the following block to <code>~/Library/Application Support/Claude/claude_desktop_config.json</code>:</p>
+<pre>{
+  "mcpServers": {
+    "openosint": {
+      "command": "python",
+      "args": ["/absolute/path/to/OpenOSINT/openosint/mcp_server.py"]
+    }
+  }
+}</pre>
+</div>
 
-        <h2>AUTHORS</h2>
-        <div class="section-content">
-            <p>Developed by Tommaso.</p>
-        </div>
+<h2 id="commands">COMMANDS</h2>
+<div class="indent">
+<table>
+<tr><th>Command</th><th>Description</th><th>Default timeout</th></tr>
+<tr>
+<td><code>email <u>ADDRESS</u></code></td>
+<td>Enumerate services registered against an email address via holehe.</td>
+<td>120s</td>
+</tr>
+<tr>
+<td><code>username <u>HANDLE</u></code></td>
+<td>Enumerate platforms where a username is registered via sherlock.</td>
+<td>180s</td>
+</tr>
+</table>
 
-        <div class="footer">
-            <span class="left">OpenOSINT 2.0.0</span>
-            <span class="center">May 10, 2026</span>
-            <span class="right">OPENOSINT(1)</span>
-        </div>
-    </div>
+<p>Global flags:</p>
+<table>
+<tr><th>Flag</th><th>Description</th></tr>
+<tr><td><code>-v, --verbose</code></td><td>Enable debug-level logging to stderr.</td></tr>
+<tr><td><code>-t, --timeout <u>N</u></code></td><td>Override default subprocess timeout (seconds).</td></tr>
+</table>
+</div>
+
+<h2 id="examples">EXAMPLES</h2>
+<div class="indent">
+<p>Enumerate services for an email address with a 60-second limit:</p>
+<pre>$ openosint email target@example.com -t 60</pre>
+
+<p>Search for a username across all supported platforms:</p>
+<pre>$ openosint username johndoe99</pre>
+
+<p>Enable verbose output for debugging a failing scan:</p>
+<pre>$ openosint -v email target@example.com</pre>
+
+<p>Agentic execution via Claude Code after MCP registration:</p>
+<pre>$ claude
+&gt; Investigate target@example.com. If you find an associated
+  username, trace it across other platforms.
+</pre>
+</div>
+
+<h2 id="files">FILES</h2>
+<div class="indent">
+<table>
+<tr><th>Path</th><th>Description</th></tr>
+<tr><td><code>openosint/mcp_server.py</code></td><td>MCP server entry point (stdio transport).</td></tr>
+<tr><td><code>openosint/cli.py</code></td><td>CLI entry point.</td></tr>
+<tr><td><code>openosint/tools/search_email.py</code></td><td>Email enumeration module.</td></tr>
+<tr><td><code>openosint/tools/search_username.py</code></td><td>Username enumeration module.</td></tr>
+<tr><td><code>openosint/tools/exceptions.py</code></td><td>Shared exception hierarchy.</td></tr>
+<tr><td><code>pyproject.toml</code></td><td>Project metadata and build configuration (PEP 621).</td></tr>
+<tr><td><code>DISCLAIMER.md</code></td><td>Legal notice and ethical use policy.</td></tr>
+</table>
+</div>
+
+<h2 id="exit">EXIT STATUS</h2>
+<div class="indent">
+<table>
+<tr><th>Code</th><th>Meaning</th></tr>
+<tr><td>0</td><td>Successful execution.</td></tr>
+<tr><td>1</td><td>General error (invalid arguments, tool failure).</td></tr>
+<tr><td>130</td><td>Terminated by SIGINT (Ctrl-C).</td></tr>
+</table>
+</div>
+
+<h2 id="license">LICENSE</h2>
+<div class="indent">
+<p>
+Released under the MIT License. See <code>LICENSE</code> in the
+source distribution.
+</p>
+<p>
+<b>openosint</b> is provided for authorised security research,
+penetration testing, and investigative journalism only.
+Users are solely responsible for compliance with applicable law.
+See <code>DISCLAIMER.md</code> for the full legal notice.
+</p>
+</div>
+
+<hr>
+<div id="footer">
+<table width="100%" cellpadding="0" cellspacing="0" border="0">
+<tr>
+<td class="mhead-l">OpenOSINT 2.0.0</td>
+<td class="mhead-c">May 10, 2026</td>
+<td class="mhead-r">OPENOSINT(1)</td>
+</tr>
+</table>
+</div>
+
+</div><!-- #content -->
 </body>
 </html>

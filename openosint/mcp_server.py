@@ -1,170 +1,170 @@
 # openosint/mcp_server.py
+"""
+OpenOSINT MCP Server.
+
+Exposes OSINT tool capabilities to MCP-compliant AI clients
+(Claude Code, Claude Desktop, etc.) over standard I/O.
+"""
+
+from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Any, Dict, List
+from typing import Any
 
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
-from mcp.types import Tool, TextContent, CallToolResult
+from mcp.types import CallToolResult, TextContent, Tool
 
-# Import the core business logic
 from openosint.tools.search_email import run_email_osint
 from openosint.tools.search_username import run_username_osint
 
-# ---------------------------------------------------------------------------
-# Configuration & Logging setup
-# ---------------------------------------------------------------------------
-logging.basicConfig(level=logging.INFO, format='[MCP Server] %(levelname)s: %(message)s')
+logging.basicConfig(
+    level=logging.INFO,
+    format="[MCP] %(levelname)s: %(message)s",
+)
 logger = logging.getLogger(__name__)
 
-# ---------------------------------------------------------------------------
-# Server Initialization
-# ---------------------------------------------------------------------------
 app = Server("openosint")
 
+
 # ---------------------------------------------------------------------------
-# Tool Discovery (Exposed to the LLM)
+# Tool registry
 # ---------------------------------------------------------------------------
+
 @app.list_tools()
-async def list_tools() -> List[Tool]:
+async def list_tools() -> list[Tool]:
     """
-    Registers and exposes available OSINT tools to the connected AI agent.
-    The 'description' field is critical as it acts as the system prompt for the LLM.
+    Declare available OSINT tools to the connected AI agent.
+
+    The *description* field is the primary signal the LLM uses to decide
+    when and how to invoke each tool. Keep descriptions precise.
     """
     return [
         Tool(
             name="search_email",
             description=(
-                "Search for accounts, forums, and services associated with an email address. "
-                "Use this tool to map a target's online presence."
+                "Enumerate online accounts and services associated with an email "
+                "address. Use this to map a target's digital presence."
             ),
             inputSchema={
                 "type": "object",
                 "properties": {
                     "email": {
                         "type": "string",
-                        "description": "The target email address (e.g., target@example.com)"
+                        "description": "Target email address (e.g. target@example.com).",
                     }
                 },
-                "required": ["email"]
-            }
+                "required": ["email"],
+            },
         ),
         Tool(
             name="search_username",
             description=(
-                "Search for a specific username across hundreds of social networks, "
-                "forums, and web services. Useful for tracking an alias."
+                "Enumerate social networks, forums, and web services where a "
+                "specific username is registered. Use this to track an alias."
             ),
             inputSchema={
                 "type": "object",
                 "properties": {
                     "username": {
                         "type": "string",
-                        "description": "The target username or alias (e.g., darkhacker99)"
+                        "description": "Target username or alias (e.g. johndoe99).",
                     }
                 },
-                "required": ["username"]
-            }
-        )
-        # Future tools (e.g., search_username) will be appended here.
+                "required": ["username"],
+            },
+        ),
     ]
 
+
 # ---------------------------------------------------------------------------
-# Tool Execution & Routing
+# Tool router
 # ---------------------------------------------------------------------------
+
 @app.call_tool()
-async def call_tool(name: str, arguments: Dict[str, Any]) -> CallToolResult:
+async def call_tool(name: str, arguments: dict[str, Any]) -> CallToolResult:
     """
-    Acts as the main router for incoming tool execution requests from the LLM.
-    Validates arguments and delegates to specific private handler functions.
+    Route an incoming tool call from the AI agent to the appropriate handler.
+
+    All exceptions are caught here and converted to MCP error responses so
+    that the agent receives actionable feedback rather than a silent failure.
     """
-    logger.info(f"Received execution request for tool: '{name}'")
-    
+    logger.info("Tool requested: %s | args: %s", name, arguments)
+
     try:
-        # Route: search_email
         if name == "search_email":
             return await _handle_search_email(arguments)
-        elif name == "search_username":
+        if name == "search_username":
             return await _handle_search_username(arguments)
-            
-        # Fallback for unknown tools
-        logger.warning(f"Unknown tool requested by AI: {name}")
-        raise ValueError(f"Tool '{name}' is not supported by this server.")
 
-    except ValueError as ve:
-        # Handled validation errors (e.g., missing params by the LLM)
-        logger.error(f"Validation Error: {ve}")
-        return _create_tool_response(f"Validation Error: {str(ve)}", is_error=True)
-        
-    except Exception as e:
-        # Unhandled execution errors
-        logger.exception(f"Unexpected system error while executing {name}.")
-        return _create_tool_response(f"Internal System Error: {str(e)}", is_error=True)
+        raise ValueError(f"Unknown tool: '{name}'")
+
+    except ValueError as exc:
+        logger.error("Validation error for tool '%s': %s", name, exc)
+        return _error_response(str(exc))
+
+    except Exception as exc:
+        logger.exception("Unhandled error executing tool '%s'.", name)
+        return _error_response(f"Internal server error: {exc}")
+
 
 # ---------------------------------------------------------------------------
-# Specific Tool Handlers (Private functions)
+# Handlers
 # ---------------------------------------------------------------------------
-async def _handle_search_email(arguments: Dict[str, Any]) -> CallToolResult:
-    """
-    Specific execution handler for the 'search_email' tool.
-    Extracts parameters, enforces business rules, and calls the core OSINT logic.
-    """
-    email = arguments.get("email")
-    
-    # Fail fast: Validate required parameters from the LLM payload
+
+async def _handle_search_email(args: dict[str, Any]) -> CallToolResult:
+    email: str | None = args.get("email")
     if not email:
-        raise ValueError("The 'email' parameter is strictly required.")
+        raise ValueError("Required parameter 'email' is missing.")
+    result = await run_email_osint(email, timeout_seconds=120)
+    return _ok_response(result)
 
-    logger.info(f"Delegating to core logic for target: {email}")
-    
-    # Execute the OSINT scan (Timeout handled safely by the core logic)
-    result_text = await run_email_osint(email, timeout_seconds=120)
-    
-    return _create_tool_response(result_text)
+
+async def _handle_search_username(args: dict[str, Any]) -> CallToolResult:
+    username: str | None = args.get("username")
+    if not username:
+        raise ValueError("Required parameter 'username' is missing.")
+    result = await run_username_osint(username, timeout_seconds=180)
+    return _ok_response(result)
+
 
 # ---------------------------------------------------------------------------
-# Utility Functions
+# Response helpers
 # ---------------------------------------------------------------------------
-def _create_tool_response(text: str, is_error: bool = False) -> CallToolResult:
-    """
-    Helper function to wrap raw string outputs into the strict MCP CallToolResult schema.
-    
-    Args:
-        text (str): The payload (result or error message).
-        is_error (bool): Set to True if the LLM should treat this as a tool failure.
-    """
+
+def _ok_response(text: str) -> CallToolResult:
     return CallToolResult(
         content=[TextContent(type="text", text=text)],
-        isError=is_error
+        isError=False,
     )
-    
-async def _handle_search_username(arguments: Dict[str, Any]) -> CallToolResult:
-    username = arguments.get("username")
-    if not username:
-        raise ValueError("The 'username' parameter is strictly required.")
-    
-    logger.info(f"Delegating to core logic for username: {username}")
-    result_text = await run_username_osint(username, timeout_seconds=180)
-    return _create_tool_response(result_text)
+
+
+def _error_response(text: str) -> CallToolResult:
+    return CallToolResult(
+        content=[TextContent(type="text", text=text)],
+        isError=True,
+    )
+
 
 # ---------------------------------------------------------------------------
-# Application Entry Point
+# Entry point
 # ---------------------------------------------------------------------------
-async def main() -> None:
-    """
-    Initializes and runs the MCP server over Standard I/O.
-    This is the standard communication protocol for local AI clients (e.g., Claude Code).
-    """
-    logger.info("Starting OpenOSINT MCP Server via stdio...")
-    
+
+async def _serve() -> None:
+    logger.info("OpenOSINT MCP server starting (stdio transport).")
     async with stdio_server() as (read_stream, write_stream):
         await app.run(
-            read_stream, 
-            write_stream, 
-            app.create_initialization_options()
+            read_stream,
+            write_stream,
+            app.create_initialization_options(),
         )
 
+
+def main() -> None:
+    """Synchronous entry point for the MCP server process."""
+    asyncio.run(_serve())
+
+
 if __name__ == "__main__":
-    # The server is started asynchronously
-    asyncio.run(main())
+    main()
