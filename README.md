@@ -1,3 +1,9 @@
+<div align="center">
+  <img src="docs/logo.svg" alt="OpenOSINT" width="320">
+</div>
+
+<br>
+
 # OPENOSINT(1) &mdash; General Commands Manual
 
 [![Release](https://img.shields.io/github/v/release/OpenOSINT/OpenOSINT?label=release&style=flat-square)](https://github.com/OpenOSINT/OpenOSINT/releases)
