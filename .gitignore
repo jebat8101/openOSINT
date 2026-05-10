@@ -1,39 +1,117 @@
-# Python bytecode and cache
+# Python
 __pycache__/
 *.py[cod]
-*$py.class
-
-# Distribution / Build folders
-build/
-dist/
-local_build/
+*.pyo
+*.pyd
+.Python
+*.egg
 *.egg-info/
-.eggs/
+dist/
+build/
+eggs/
+parts/
+var/
+sdist/
+wheels/
+pip-wheel-metadata/
+*.manifest
+*.spec
 
-# Virtual Environments
-venv/
+# Virtual environments
 .venv/
+venv/
 env/
 ENV/
+.env
 
-# OS specific files
+# Environment variables
+.env
+.env.local
+.env.*
+
+# Config (contains API keys — never commit)
+config.yaml
+config.yml
+
+# OpenOSINT generated output
+reports/
+*.cast
+
+# Distribution / packaging
+.installed.cfg
+lib/
+lib64/
+
+# PyInstaller
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+htmlcov/
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# ruff
+.ruff_cache/
+
+# macOS
 .DS_Store
-.DS_Store?
+.AppleDouble
+.LSOverride
+Icon
 ._*
 .Spotlight-V100
 .Trashes
-Thumbs.db
-ehthumbs.db
 
-# IDE specific (VSCode, PyCharm, etc.)
-.vscode/
+# Xcode
+*.pbxuser
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+xcuserdata/
+*.xccheckout
+*.moved-aside
+DerivedData/
+*.hmap
+*.ipa
+
+# JetBrains IDEs
 .idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# Claude Code
+.claude/
+CLAUDE.md
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
 *.swp
 *.swo
-
-# Project specific temporary files
-project_map.txt
-*.log
-
-project_map.txt
-
+*~

@@ -18,6 +18,11 @@
 
 ---
 
+<div align="center">
+  <img src="assets/demo.gif" alt="OpenOSINT demo" width="700">
+</div>
+---
+
 ## SYNOPSIS
 
 ```
