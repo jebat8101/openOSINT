@@ -53,7 +53,7 @@ PROMPT_STYLE = Style.from_dict({
 def _print_banner() -> None:
     console.print()
     console.print(Panel.fit(
-        "[bold #00ff88]OpenOSINT[/] [dim]v2.1.0[/]  [dim]·[/]  [dim]MCP-native OSINT framework[/]",
+        "[bold #00ff88]OpenOSINT[/] [dim]v2.3.0[/]  [dim]·[/]  [dim]MCP-native OSINT framework[/]",
         border_style="#1e293b",
         padding=(0, 2),
     ))

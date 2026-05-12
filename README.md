@@ -31,10 +31,13 @@
 ## SYNOPSIS
 
 ```
-openosint                          # interactive AI REPL (default)
-openosint shell                    # same as above
-openosint email ADDRESS [-t N]     # direct email scan, no AI
-openosint username HANDLE [-t N]   # direct username scan, no AI
+openosint                                  # interactive AI REPL (default)
+openosint shell                            # same as above
+openosint email ADDRESS [-t N]             # direct email scan, no AI
+openosint username HANDLE [-t N]           # direct username scan, no AI
+openosint --parallel email ADDRESS         # parallel: search_email + search_breach
+openosint --parallel username HANDLE       # parallel: search_username + search_paste
+openosint --json email ADDRESS             # JSON output
 openosint [-v] [--api-key KEY]
 ```
 
@@ -342,6 +345,24 @@ Enumerate platforms for *HANDLE* via sherlock. Default timeout: 180s.
 | `-v, --verbose` | Enable debug logging to stderr. |
 | `-t, --timeout N` | Override subprocess timeout (seconds). |
 | `--api-key KEY` | Anthropic API key (overrides env var). |
+| `--parallel` | Run independent complementary tools concurrently via `asyncio.gather()`. For `email`: runs `search_email` + `search_breach` in parallel. For `username`: runs `search_username` + `search_paste` in parallel. |
+| `--json` | Output results as structured JSON instead of formatted text. |
+
+---
+
+## DOCKER
+
+```bash
+# Build and run
+docker compose up --build
+
+# One-off command
+docker compose run --rm openosint email target@example.com --json
+```
+
+Set `ANTHROPIC_API_KEY` (and optionally `HIBP_API_KEY`, `IPINFO_TOKEN`) in a `.env` file or export them in your shell before running `docker compose`.
+
+Reports are persisted to `./reports/` via a volume mount.
 
 ---
 
@@ -443,4 +464,4 @@ MIT License. See [LICENSE](LICENSE).
 
 ---
 
-*OpenOSINT 2.2.0 &mdash; May 11, 2026*
+*OpenOSINT 2.3.0 &mdash; May 12, 2026*

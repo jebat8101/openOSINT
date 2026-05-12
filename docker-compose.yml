@@ -1,0 +1,12 @@
+services:
+  openosint:
+    build: .
+    image: openosint:latest
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - HIBP_API_KEY=${HIBP_API_KEY:-}
+      - IPINFO_TOKEN=${IPINFO_TOKEN:-}
+    volumes:
+      - ./reports:/app/reports
+    stdin_open: true
+    tty: true

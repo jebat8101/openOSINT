@@ -46,7 +46,7 @@ def _query_hibp(email: str) -> list[dict]:
 
     headers = {
         "hibp-api-key": api_key,
-        "user-agent": "OpenOSINT/2.1.0",
+        "user-agent": "OpenOSINT/2.3.0",
     }
     url = _HIBP_API_URL.format(email=email)
 
