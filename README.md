@@ -103,12 +103,15 @@ Persist in ~/.zshrc on Kali if you want it every session.
 
 Option B — Ollama (local, no Anthropic key)
 Install the Ollama server: ollama.com/download
+```
 Start and pull a model:
+```
 ollama serve
 ollama pull llama3.2
-Run with Ollama (client is included in [all] / [ollama]):
-openosint --provider ollama
 ```
+Run with Ollama (client is included in [all] / [ollama]):
+```
+openosint --provider ollama
 
 **Streamlit web UI:**
 
