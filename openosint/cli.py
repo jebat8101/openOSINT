@@ -443,14 +443,19 @@ async def _async_main() -> None:
 
     # No subcommand or explicit 'shell' → launch REPL
     if args.command in (None, "shell"):
-        from openosint.repl import run_repl
-        run_repl(
+        from openosint.repl import OpenOSINTRepl
+
+        repl = OpenOSINTRepl(
             api_key=getattr(args, "api_key", None),
             provider=getattr(args, "provider", "anthropic"),
             ollama_model=getattr(args, "ollama_model", "llama3.2"),
             ollama_host=getattr(args, "ollama_host", "http://localhost:11434"),
             is_pdf_disabled=getattr(args, "is_pdf_disabled", False),
         )
+        try:
+            await repl.run()
+        except KeyboardInterrupt:
+            pass
         return
 
     is_parallel = getattr(args, "is_parallel", False)

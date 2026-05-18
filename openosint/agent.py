@@ -14,6 +14,7 @@ is structurally impossible.
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 from dataclasses import dataclass, field
@@ -284,6 +285,42 @@ class _AgentRunContext:
 # Shared turn helpers
 # ---------------------------------------------------------------------------
 
+_SCALAR_FALLBACK_KEYS = (
+    "email", "username", "domain", "target", "query", "ip", "phone", "value", "name",
+)
+
+
+def _coerce_scalar(value: Any, *, key_hint: str = "") -> str:
+    """Flatten model tool args to plain strings (Ollama may nest dicts)."""
+    if value is None:
+        return ""
+    if isinstance(value, (str, int, float, bool)):
+        return str(value).strip()
+    if isinstance(value, dict):
+        keys = (key_hint, *_SCALAR_FALLBACK_KEYS) if key_hint else _SCALAR_FALLBACK_KEYS
+        for k in keys:
+            if k and k in value:
+                return _coerce_scalar(value[k], key_hint=k)
+        if value:
+            return _coerce_scalar(next(iter(value.values())), key_hint=key_hint)
+        return ""
+    if isinstance(value, (list, tuple)) and value:
+        return _coerce_scalar(value[0], key_hint=key_hint)
+    return str(value).strip()
+
+
+def normalize_tool_input(raw: Any) -> dict[str, str]:
+    """Parse and normalize tool arguments from Anthropic or Ollama."""
+    if isinstance(raw, str):
+        try:
+            raw = json.loads(raw)
+        except json.JSONDecodeError:
+            return {}
+    if not isinstance(raw, dict):
+        return {}
+    return {str(k): _coerce_scalar(v, key_hint=str(k)) for k, v in raw.items()}
+
+
 def _extract_first_text(content: list[Any]) -> str:
     """Return text from the first text block in an Anthropic content list."""
     for block in content:
@@ -298,10 +335,11 @@ async def _execute_tool(
     on_tool_call: Any,
 ) -> str:
     """Invoke on_tool_call callback then run the tool, returning its string result."""
+    normalized = normalize_tool_input(tool_input)
     if on_tool_call is not None:
-        await on_tool_call(tool_name, tool_input)
+        await on_tool_call(tool_name, normalized)
     if tool_name in _TOOL_MAP:
-        return await _TOOL_MAP[tool_name](tool_input)
+        return await _TOOL_MAP[tool_name](normalized)
     return f"Error: unknown tool '{tool_name}'."
 
 
@@ -350,7 +388,7 @@ async def _process_ollama_tool_turn(
     ctx.messages.append(_build_ollama_assistant_message(ollama_msg))
     for ollama_tool_call in ollama_msg.tool_calls:
         tool_name = ollama_tool_call.function.name
-        tool_input = dict(ollama_tool_call.function.arguments)
+        tool_input = normalize_tool_input(ollama_tool_call.function.arguments)
         result = await _execute_tool(tool_name, tool_input, ctx.on_tool_call)
         ctx.tool_calls.append(ToolCall(name=tool_name, input=tool_input, result=result))
         logger.info("Ollama tool executed: %s → %d chars", tool_name, len(result))
@@ -360,6 +398,30 @@ async def _process_ollama_tool_turn(
 # ---------------------------------------------------------------------------
 # Anthropic agent
 # ---------------------------------------------------------------------------
+
+def _anthropic_error_message(exc: anthropic.APIStatusError) -> str:
+    """Map Anthropic API errors to actionable REPL messages."""
+    body = getattr(exc, "body", None) or {}
+    err = body.get("error", {}) if isinstance(body, dict) else {}
+    detail = err.get("message", str(exc)) if isinstance(err, dict) else str(exc)
+    lower = detail.lower()
+
+    if "credit balance" in lower or "insufficient" in lower and "credit" in lower:
+        return (
+            "Anthropic API credits exhausted.\n"
+            "  Add credits: https://console.anthropic.com/settings/billing\n"
+            "  Or run tools without AI:\n"
+            "    openosint email target@example.com\n"
+            "    openosint username johndoe\n"
+            "  Or use a local model: openosint --provider ollama"
+        )
+    if isinstance(exc, anthropic.RateLimitError) or "rate limit" in lower:
+        return (
+            f"Anthropic rate limit reached: {detail}\n"
+            "  Wait a few minutes and retry, or use: openosint --provider ollama"
+        )
+    return detail
+
 
 class OpenOSINTAgent:
     """
@@ -432,13 +494,15 @@ class OpenOSINTAgent:
         except anthropic.AuthenticationError:
             return AgentResponse(
                 content="",
-                error="Invalid API key. Run 'openosint config' to update it.",
+                error="Invalid API key. Check ANTHROPIC_API_KEY or run: openosint --api-key KEY",
             )
         except anthropic.APIConnectionError:
             return AgentResponse(
                 content="",
                 error="Cannot reach the Anthropic API. Check your internet connection.",
             )
+        except anthropic.APIStatusError as exc:
+            return AgentResponse(content="", error=_anthropic_error_message(exc))
         except Exception as exc:
             logger.exception("Unexpected error in Anthropic agent loop.")
             return AgentResponse(content="", error=str(exc))
@@ -543,6 +607,16 @@ class OllamaAgent:
                     self.history.append({"role": "assistant", "content": text})
                     return AgentResponse(content=text, tool_calls=ctx.tool_calls)
                 await _process_ollama_tool_turn(ctx, msg)
+        except ConnectionError:
+            return AgentResponse(
+                content="",
+                error=(
+                    f"Cannot reach Ollama at {self.host}. "
+                    "Install the server: curl -fsSL https://ollama.com/install.sh | sh "
+                    f"then run: ollama serve && ollama pull {self.model}. "
+                    "Or use Claude: openosint (with ANTHROPIC_API_KEY set)."
+                ),
+            )
         except Exception as exc:
             logger.exception("Unexpected error in Ollama agent loop.")
             return AgentResponse(content="", error=str(exc))

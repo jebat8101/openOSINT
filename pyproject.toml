@@ -44,9 +44,6 @@ Repository = "https://github.com/OpenOSINT/OpenOSINT"
 Documentation = "https://openosint.github.io/OpenOSINT"
 "Bug Tracker" = "https://github.com/OpenOSINT/OpenOSINT/issues"
 
-[project.scripts]
-openosint = "openosint.cli:main"
-
 [project.optional-dependencies]
 dev = [
     "pytest>=7.0",
@@ -62,11 +59,19 @@ ollama = [
 pdf = [
     "reportlab>=4.0.0",
 ]
+web = [
+    "streamlit>=1.28.0",
+]
 all = [
     "shodan>=1.31.0",
     "ollama>=0.3.0",
     "reportlab>=4.0.0",
+    "streamlit>=1.28.0",
 ]
+
+[project.scripts]
+openosint = "openosint.cli:main"
+openosint-web = "openosint.streamlit_app:main_web"
 
 [tool.setuptools.packages.find]
 where = ["."]

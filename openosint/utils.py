@@ -60,11 +60,20 @@ async def run_subprocess(
             f"'{binary}' is not installed or not in PATH.{detail}"
         )
 
+    str_args: list[str] = []
+    for i, arg in enumerate(args):
+        if isinstance(arg, (dict, list, tuple, set)):
+            raise ToolNotFoundError(
+                f"Invalid argument at position {i} for '{binary}': "
+                f"expected str, got {type(arg).__name__}."
+            )
+        str_args.append(str(arg))
+
     process: asyncio.subprocess.Process | None = None
     try:
         process = await asyncio.create_subprocess_exec(
             binary,
-            *args,
+            *str_args,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )

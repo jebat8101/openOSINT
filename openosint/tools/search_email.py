@@ -20,8 +20,21 @@ _DEFAULT_TIMEOUT = 120
 _INSTALL_HINT = "Install it with: pip install holehe"
 
 
+def _coerce_email(email: object) -> str:
+    """Ensure email is a plain string (models may pass nested dicts)."""
+    if isinstance(email, dict):
+        if "email" in email:
+            return _coerce_email(email["email"])
+        raise ToolExecutionError(f"Invalid email argument: {email!r}")
+    text = str(email).strip()
+    if not text or "@" not in text:
+        raise ToolExecutionError(f"Invalid email address: {text!r}")
+    return text
+
+
 async def _run_holehe(email: str, timeout_seconds: int) -> str:
     """Execute holehe against email and return raw stdout."""
+    email = _coerce_email(email)
     result = await run_subprocess(
         binary=_BINARY,
         args=[email, "--only-used"],
@@ -66,6 +79,7 @@ async def run_email_osint(
     """
     logger.info("Starting email OSINT scan for: %s", email)
     try:
+        email = _coerce_email(email)
         raw = await _run_holehe(email, timeout_seconds)
         result = _format_email_results(raw, email)
         logger.info("Email scan complete for: %s", email)

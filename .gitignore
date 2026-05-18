@@ -36,6 +36,9 @@ config.yml
 # OpenOSINT generated output
 reports/
 *.cast
+# Local scan output / notes (do not commit targets)
+johndoe99.txt
+n_izzah.txt
 
 # Distribution / packaging
 .installed.cfg

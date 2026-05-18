@@ -18,6 +18,8 @@ import asyncio
 import logging
 import os
 import sys
+import urllib.error
+import urllib.request
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -168,6 +170,29 @@ def _print_error(message: str) -> None:
         padding=(0, 2),
     ))
     console.print()
+
+
+def _ollama_reachable(host: str, timeout: float = 2.0) -> bool:
+    """Return True if the Ollama HTTP API responds."""
+    url = f"{host.rstrip('/')}/api/tags"
+    try:
+        with urllib.request.urlopen(url, timeout=timeout) as resp:
+            return resp.status == 200
+    except (urllib.error.URLError, TimeoutError, OSError):
+        return False
+
+
+def _ollama_setup_message(host: str, model: str) -> str:
+    return (
+        f"Cannot reach Ollama at [bold]{host}[/].\n"
+        "  The [bold]ollama[/] pip package is only a client — you also need the Ollama server.\n\n"
+        "  [bold]Install & start (requires sudo):[/]\n"
+        "    curl -fsSL https://ollama.com/install.sh | sh\n"
+        "    ollama serve\n"
+        f"    ollama pull {model}\n\n"
+        "  [bold]Or use Claude instead[/] (if ANTHROPIC_API_KEY is set):\n"
+        "    openosint"
+    )
 
 
 def _print_config(
@@ -335,6 +360,10 @@ class OpenOSINTRepl:
                 "  Export it: [bold]export ANTHROPIC_API_KEY=sk-ant-...[/]\n"
                 "  Or use a local model: [bold]openosint --provider ollama[/]"
             )
+            sys.exit(1)
+
+        if self._provider == "ollama" and not _ollama_reachable(self._ollama_host):
+            _print_error(_ollama_setup_message(self._ollama_host, self._ollama_model))
             sys.exit(1)
 
         _print_banner(self._provider, self._display_model)

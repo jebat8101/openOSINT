@@ -77,27 +77,24 @@ No layer imports from a layer above it.
 
 ## INSTALLATION
 
-Requires Python 3.10 or later.
+Requires Python 3.10 or later. **Full step-by-step guide:** [INSTALL.md](INSTALL.md)
 
 ```bash
-git clone https://github.com/OpenOSINT/OpenOSINT.git
-cd OpenOSINT
-pip install -e .
+git clone https://github.com/jebat8101/openOSINT.git
+cd openOSINT
+python3 -m venv venv && source venv/bin/activate
+pip install --upgrade pip
+pip install -e ".[all]"
+pip install holehe sherlock-project sublist3r
+export ANTHROPIC_API_KEY=sk-ant-...   # or: openosint --provider ollama
+openosint
 ```
 
-Set your Anthropic API key (not required when using Ollama):
+**Streamlit web UI:**
 
 ```bash
-export ANTHROPIC_API_KEY=sk-ant-...
-```
-
-**Optional: use a local Ollama model instead of Anthropic:**
-
-```bash
-# Install Ollama from https://ollama.com, then:
-ollama pull llama3.2
-pip install ollama
-openosint --provider ollama
+streamlit run openosint/streamlit_app.py
+# or: openosint-web
 ```
 
 **External dependencies** (must be present in `PATH`):
@@ -109,24 +106,7 @@ openosint --provider ollama
 | `sublist3r` | Subdomain enumeration | `pip install sublist3r` |
 | `phoneinfoga` | Phone number intelligence | [Download binary](https://github.com/sundowndev/phoneinfoga/releases) |
 
-If a binary is absent, the corresponding tool returns a descriptive error string. All other tools remain operational.
-
-**Optional environment variables:**
-
-| Variable | Tool | Purpose |
-|----------|------|---------|
-| `HIBP_API_KEY` | `search_breach` | HaveIBeenPwned API key — [get one here](https://haveibeenpwned.com/API/Key) |
-| `IPINFO_TOKEN` | `search_ip` | ipinfo.io token for higher rate limits |
-| `SHODAN_API_KEY` | `search_shodan` | Shodan API key — [get one here](https://account.shodan.io) |
-| `VIRUSTOTAL_API_KEY` | `search_virustotal` | VirusTotal API key — [get one here](https://www.virustotal.com/gui/my-apikey) |
-
-**Optional Python packages:**
-
-| Package | Purpose | Install |
-|---------|---------|---------|
-| `ollama` | Local LLM backend (no API key) | `pip install ollama` |
-| `shodan` | Shodan API client | `pip install shodan` |
-| `reportlab` | PDF report export | `pip install reportlab` |
+**Optional environment variables:** `ANTHROPIC_API_KEY`, `HIBP_API_KEY`, `SHODAN_API_KEY`, `VIRUSTOTAL_API_KEY`, `IPINFO_TOKEN` — see [INSTALL.md](INSTALL.md).
 
 ---
 

@@ -36,6 +36,24 @@ class TestGenerateDorks:
 
 
 # ---------------------------------------------------------------------------
+# agent tool input normalization
+# ---------------------------------------------------------------------------
+
+class TestNormalizeToolInput:
+    def test_flattens_nested_email_dict(self):
+        from openosint.agent import normalize_tool_input
+
+        assert normalize_tool_input({"email": {"email": "a@b.com"}}) == {
+            "email": "a@b.com"
+        }
+
+    def test_parses_json_string(self):
+        from openosint.agent import normalize_tool_input
+
+        assert normalize_tool_input('{"email": "a@b.com"}') == {"email": "a@b.com"}
+
+
+# ---------------------------------------------------------------------------
 # search_email — binary missing
 # ---------------------------------------------------------------------------
 
@@ -120,6 +138,51 @@ class TestSearchDomainMissingBinary:
             await run_domain_osint("example.com")
         except Exception as exc:
             pytest.fail(f"run_domain_osint raised unexpectedly: {exc}")
+
+
+class TestSearchDomainHelpers:
+    def test_parse_subdomains_strips_ansi_and_noise(self):
+        from openosint.tools.search_domain import _parse_subdomains
+
+        raw = (
+            "[-] Enumerating subdomains now for example.com\n"
+            "\x1b[92mwww.example.com\x1b[0m\n"
+            "api.example.com\n"
+        )
+        assert _parse_subdomains(raw, "example.com") == {
+            "www.example.com",
+            "api.example.com",
+        }
+
+    def test_normalize_domain_strips_scheme(self):
+        from openosint.tools.search_domain import _normalize_domain
+
+        assert _normalize_domain("https://Example.COM/path") == "example.com"
+
+    async def test_run_domain_osint_merges_crtsh_and_sublist3r(self, monkeypatch):
+        from openosint.tools import search_domain as mod
+        from openosint.utils import SubprocessResult
+
+        monkeypatch.setattr(
+            mod,
+            "_fetch_crtsh_subdomains",
+            lambda domain, timeout: {"crt.example.com"},
+        )
+
+        async def fake_sublist3r(domain: str, timeout_seconds: int) -> SubprocessResult:
+            return SubprocessResult(
+                stdout="sub.example.com\n",
+                stderr="Process DNSdumpster-8:\nIndexError: list index out of range\n",
+                return_code=1,
+            )
+
+        monkeypatch.setattr(mod, "_run_sublist3r", fake_sublist3r)
+
+        result = await mod.run_domain_osint("example.com", timeout_seconds=5)
+        assert "crt.example.com" in result
+        assert "sub.example.com" in result
+        assert "crt.sh" in result
+        assert "sublist3r" in result
 
 
 # ---------------------------------------------------------------------------
