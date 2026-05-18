@@ -95,6 +95,7 @@ AI provider (pick one)
 ```
 Option A — Anthropic Claude (default)
 1.Create a key at console.anthropic.com.
+
 2.Export it:
 ```
 export ANTHROPIC_API_KEY=sk-ant-...
