@@ -90,7 +90,6 @@ export ANTHROPIC_API_KEY=sk-ant-...   # or: openosint --provider ollama
 openosint
 ```
 ```
-AI provider (pick one)
 Option A — Anthropic Claude (default)
 Create a key at console.anthropic.com.
 Export it:
