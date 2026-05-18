@@ -106,14 +106,13 @@ openosint --api-key sk-ant-...
 Persist in ~/.zshrc on Kali if you want it every session.
 
 Option B — Ollama (local, no Anthropic key)
-Install the Ollama server: ollama.com/download
-```
-Start and pull a model:
+1.Install the Ollama server: ollama.com/download
+2.Start and pull a model:
 ```
 ollama serve
 ollama pull llama3.2
 ```
-Run with Ollama (client is included in [all] / [ollama]):
+3.Run with Ollama (client is included in [all] / [ollama]):
 ```
 openosint --provider ollama
 
