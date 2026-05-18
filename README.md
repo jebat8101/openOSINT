@@ -92,13 +92,17 @@ openosint
 
 AI provider (pick one)
 ```
+```
 Option A — Anthropic Claude (default)
-Create a key at console.anthropic.com.
-Export it:
+1.Create a key at console.anthropic.com.
+2.Export it:
+```
 export ANTHROPIC_API_KEY=sk-ant-...
+```
 Or per run:
-
+```
 openosint --api-key sk-ant-...
+```
 Persist in ~/.zshrc on Kali if you want it every session.
 
 Option B — Ollama (local, no Anthropic key)
