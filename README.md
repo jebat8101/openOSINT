@@ -108,6 +108,7 @@ Persist in ~/.zshrc on Kali if you want it every session.
 
 Option B — Ollama (local, no Anthropic key)
 1.Install the Ollama server: ollama.com/download
+
 2.Start and pull a model:
 ```
 ollama serve
